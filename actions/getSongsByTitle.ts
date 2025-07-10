@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import getSongs from "./getSongs";
 
 const getSongsByTitle = async (title: string): Promise<Song[]> => {
-    const cookieStore = await cookies(); // ✅ await it
+    const cookieStore = cookies(); // ✅ await it
 
     const supabase = createServerComponentClient({
         cookies: () => cookieStore // ✅ pass a function that returns the cookies

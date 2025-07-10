@@ -3,7 +3,7 @@ import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
 const getSongsByUserId = async (): Promise<Song[]> => {
-    const cookieStore = await cookies(); // ✅ await it
+    const cookieStore = cookies(); // ✅ await it
 
     const supabase = createServerComponentClient({
         cookies: () => cookieStore // ✅ pass a function that returns the cookies
