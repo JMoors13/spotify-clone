@@ -27,6 +27,9 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
   const Icon = isPlaying ? BsPauseFill : BsPlayFill;
   const VolumeIcon = volume === 0 ? HiSpeakerXMark : HiSpeakerWave;
 
+  const [duration, setDuration] = useState(0);
+  const [position, setPosition] = useState(0);
+
   const onPlayNext = () => {
     if (player.ids.length === 0) {
       return;
@@ -40,6 +43,14 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
     }
 
     player.setId(nextSong);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60)
+      .toString()
+      .padStart(2, '0');
+    return `${mins}:${secs}`;
   };
 
   const onPlayPrevious = () => {
@@ -57,22 +68,80 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
     player.setId(previousSong);
   };
 
+  // const [play, { pause, sound }] = useSound(songUrl, {
+  //   volume: volume,
+  //   onplay: () => setIsPlaying(true),
+  //   onend: () => {
+  //     setIsPlaying(false);
+  //     onPlayNext();
+  //   },
+  //   onpause: () => setIsPlaying(false),
+  //   onload: () => {
+  //     if (sound) {
+  //       setDuration(sound.duration() || 0);
+  //     }
+  //   },
+  //   format: ['mp3'],
+  // });
+
   const [play, { pause, sound }] = useSound(songUrl, {
-    volume: volume,
+    volume,
+    format: ['mp3'],
     onplay: () => setIsPlaying(true),
     onend: () => {
       setIsPlaying(false);
       onPlayNext();
     },
     onpause: () => setIsPlaying(false),
-    format: ['mp3'],
+    // onload: () => {
+    //   if (sound) {
+    //     const loadedDuration = sound.duration();
+    //     if (loadedDuration) {
+    //       setDuration(loadedDuration);
+    //     }
+    //   }
+    // },
   });
+
+  useEffect(() => {
+    if (!sound || !isPlaying) return;
+
+    const checkDuration = () => {
+      const loadedDuration = sound.duration();
+      if (loadedDuration && loadedDuration > 0) {
+        setDuration(loadedDuration);
+      } else {
+        setTimeout(checkDuration, 200); // check again in 200ms
+      }
+    };
+
+    checkDuration();
+  }, [sound, isPlaying]);
 
   useEffect(() => {
     sound?.play();
 
     return () => {
       sound?.unload();
+    };
+  }, [sound]);
+
+  useEffect(() => {
+    if (!sound) return;
+
+    const updatePosition = () => {
+      setPosition(sound.seek() || 0); // current position
+      requestAnimationFrame(updatePosition);
+    };
+
+    // sound.on('load', () => {
+    //   setDuration(sound.duration() || 0);
+    // });
+
+    requestAnimationFrame(updatePosition);
+
+    return () => {
+      sound.off('load');
     };
   }, [sound]);
 
@@ -93,33 +162,65 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 h-full">
-      <div
-        className="
+    <>
+      <div className="w-full -mt-2">
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-neutral-400 w-[40px] text-right">
+            {formatTime(position)}
+          </span>
+          <Slider
+            value={position}
+            max={duration}
+            onChange={(value) => {
+              sound?.seek(value);
+              setPosition(value);
+            }}
+            // className="flex-grow"
+          />
+          <span className="text-xs text-neutral-400 w-[40px] text-left">
+            {formatTime(duration - position)}
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 h-full">
+        <div
+          className="
             flex
             w-full
             justify-start
         "
-      >
-        <div className="flex items-center gap-x-4">
-          <MediaItem data={song} />
-          <LikeButton songId={song.id} />
+        >
+          <div className="flex items-center gap-x-4">
+            <MediaItem data={song} />
+            <div
+              className="
+                hidden
+                md:flex
+                col-auto
+                w-full
+                justify-start
+                items-center
+              "
+            >
+              <LikeButton songId={song.id} />
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div
-        className="
+        <div
+          className="
         flex
         md:hidden
         col-auto
         w-full
-        justify-end
+        justify-start
         items-center
       "
-      >
-        <div
-          onClick={handlePlay}
-          className="
+        >
+          <div
+            onClick={handlePlay}
+            className="
                 h-10
                 w-10
                 flex
@@ -130,12 +231,24 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
                 p-1
                 cursor-pointer
             "
-        >
-          <Icon size={30} className="text-black" />
+          >
+            <Icon size={30} className="text-black" />
+          </div>
+          <div
+            className="
+        flex
+        md:hidden
+        col-auto
+        w-full
+        justify-end
+        items-center
+      "
+          >
+            <LikeButton songId={song.id} />
+          </div>
         </div>
-      </div>
-      <div
-        className="
+        <div
+          className="
             hidden
             h-full
             md:flex
@@ -145,20 +258,20 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
             max-w-[722px]
             gap-x-6
         "
-      >
-        <AiFillStepBackward
-          onClick={onPlayPrevious}
-          size={30}
-          className="
+        >
+          <AiFillStepBackward
+            onClick={onPlayPrevious}
+            size={30}
+            className="
                 text-neutral-400
                 cursor-pointer
                 hover:text-white
                 transition
             "
-        />
-        <div
-          onClick={handlePlay}
-          className="
+          />
+          <div
+            onClick={handlePlay}
+            className="
                 flex
                 items-center
                 justify-center
@@ -169,32 +282,33 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
                 p-1
                 cursor-pointer
             "
-        >
-          <Icon size={30} className="text-black" />
-        </div>
-        <AiFillStepForward
-          onClick={onPlayNext}
-          size={30}
-          className="
+          >
+            <Icon size={30} className="text-black" />
+          </div>
+          <AiFillStepForward
+            onClick={onPlayNext}
+            size={30}
+            className="
                 text-neutral-400
                 cursor-pointer
                 hover:text-white
                 transition
             "
-        />
-      </div>
-
-      <div className="hidden md:flex w-full justify-end pr-2">
-        <div className="flex items-center gap-x-2 w-[120px]">
-          <VolumeIcon
-            onClick={toggleMute}
-            size={30}
-            className="cursor-pointer"
           />
-          <Slider value={volume} onChange={(value) => setVolume(value)} />
+        </div>
+
+        <div className="hidden md:flex w-full justify-end pr-2">
+          <div className="flex items-center gap-x-2 w-[120px]">
+            <VolumeIcon
+              onClick={toggleMute}
+              size={30}
+              className="cursor-pointer"
+            />
+            <Slider value={volume} onChange={(value) => setVolume(value)} />
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

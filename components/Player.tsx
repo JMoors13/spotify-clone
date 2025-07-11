@@ -20,7 +20,7 @@ const Player = () => {
     <div
       className="
             fixed
-            bottom-0
+            bottom-10
             bg-black
             w-full
             py-2
