@@ -214,10 +214,14 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
         md:hidden
         col-auto
         w-full
-        justify-start
+        justify-end
         items-center
+        gap-x-2
       "
         >
+          <div>
+            <LikeButton songId={song.id} />
+          </div>
           <div
             onClick={handlePlay}
             className="
@@ -225,7 +229,7 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
                 w-10
                 flex
                 items-center
-                jusity-center
+                justify-center
                 rounded-full
                 bg-white
                 p-1
@@ -233,18 +237,6 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
             "
           >
             <Icon size={30} className="text-black" />
-          </div>
-          <div
-            className="
-        flex
-        md:hidden
-        col-auto
-        w-full
-        justify-end
-        items-center
-      "
-          >
-            <LikeButton songId={song.id} />
           </div>
         </div>
         <div
